@@ -1,0 +1,127 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
+#include <PID_v1.h>
+#include <Servo.h>
+#define MAX_SIGNAL 2000
+#define MIN_SIGNAL 700
+#define MOTOR_PIN 9
+#define sensor 3
+
+LiquidCrystal_I2C lcd(0x27, 2, 16);
+
+const byte rows = 4;
+const byte cols = 4;
+
+char keys[rows][cols] = {
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+byte rowPins[rows] = {4, 5, 6, 7};
+byte colPins[cols] = {8, 10, 11, 12};
+
+Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, rows, cols );
+
+Servo motor;
+
+double Setpoint, Input, Output;
+int  inputspeed, rpm, rpmcount;
+char key = keypad.waitForKey();
+
+PID myPID (&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
+
+void setup() {
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
+  //turn on lcd
+  lcd.init();
+  lcd.begin(16, 2);
+  lcd.backlight();
+  lcd.clear();
+  lcd.print("turn on motor");
+  //calibrate esc controller
+  motor.attach(9);
+  delay(2000);
+  motor.writeMicroseconds(2400);
+  rpmcount = 0;
+  delay(2000);
+  rpm = 0;
+  motor.writeMicroseconds(544);
+  lcd.clear();
+  inputspeed = getInputSpeed();
+  Setpoint = inputspeed;
+
+  Input = 0;
+
+  //turn on the PID
+  myPID.SetMode(AUTOMATIC);
+
+}
+
+void loop() {
+  //pid control
+
+  Input = determineRpm();
+  myPID.Compute();
+  motor.write(Output);
+
+}
+
+
+//get setpoint for pid loop (the desired speed for the spincoater)
+//exit key is a
+//enter input speed is b
+int getInputSpeed() {
+  int count = 0;
+  int accumulator = 0;
+  char number;
+  inputspeed = 0;
+  lcd.print("get input speed");
+  delay(2000);
+  lcd.clear();
+  for (count = 0; count <= 5; count++) {
+    if (key) {
+      number = key;
+    }
+    accumulator = accumulator * 10;
+    accumulator = number += accumulator;
+    lcd.clear();
+    lcd.print(accumulator);
+  }
+  inputspeed = accumulator;
+  return inputspeed;
+}
+
+//rpm function
+int rpm_fun()
+{
+  //unsigned int long k;
+  int i, j;
+  rpmcount = 0;
+  for (i = 0; i < 1000; i++)
+  {
+    for (j = 0; j < 1227; j++)
+    {
+      if (digitalRead(sensor))
+      {
+        rpmcount++;
+        while (digitalRead(sensor));
+      }
+    }
+  }
+  return rpmcount;
+}
+
+int determineRpm() {
+  int timer;
+  rpm = 0;
+  timer = rpm_fun();
+  rpm = timer * 12;
+  lcd.clear();
+  lcd.print(inputspeed);
+  lcd.setCursor(1, 1);
+  lcd.print(rpm);
+  return rpm;
+}
