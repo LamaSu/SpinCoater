@@ -28,7 +28,8 @@ Servo motor;
 
 double Setpoint, Input, Output;
 int  inputspeed, rpm, rpmcount;
-char key = keypad.waitForKey();
+//Changed this from keypad.waitForKey to avoid code blocks.
+char key = keypad.getKey();
 
 PID myPID (&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
 
@@ -81,14 +82,27 @@ int getInputSpeed() {
   lcd.print("get input speed");
   delay(2000);
   lcd.clear();
-  for (count = 0; count <= 5; count++) {
-    if (key) {
-      number = key;
+  lcd.print(accumulator);
+  for (count = 0; keypad.keyStateChanged() && count <= 5; count++) {
+    if (key != 'A' && key != 'B' && key != 'C'
+	&& key != 'D' && key != '*' && key != '#') {
+      int number = key - '0';
+      accumulator = accumulator * 10;
+      accumulator = number + accumulator;
+      lcd.clear();
+      lcd.print(accumulator);
     }
-    accumulator = accumulator * 10;
-    accumulator = number += accumulator;
-    lcd.clear();
-    lcd.print(accumulator);
+    else if (key == 'A'){
+      accumulator = 0;
+      count = 0;
+      lcd.clear();
+    }
+    else if (key == 'B'){
+      count = 5;
+    }
+    else{
+      count--;
+    }
   }
   inputspeed = accumulator;
   return inputspeed;
