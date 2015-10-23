@@ -27,8 +27,9 @@ Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, rows, cols );
 Servo motor;
 
 double Setpoint, Input, Output;
-int  inputspeed, rpm, rpmcount;
-char key = keypad.waitForKey();
+int  inputspeed, rpm, rpmcount = 0;
+
+int accumulator = 0;
 
 PID myPID (&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
 
@@ -52,7 +53,7 @@ void setup() {
   lcd.clear();
   inputspeed = getInputSpeed();
   Setpoint = inputspeed;
-
+  keypad.addEventListener(keypadEvent);
   Input = 0;
 
   //turn on the PID
@@ -62,18 +63,47 @@ void setup() {
 
 void loop() {
   //pid control
-
-  Input = determineRpm();
+  keypad.getKey();
+  Setpoint = inputspeed;
+  Input =      ;
   myPID.Compute();
   motor.write(Output);
 
 }
 
+void keypadEvent(KeypadEvent eKey){
+  switch (keypad.getState()){
+  case PRESSED:
+
+    lcd.print("Enter: ");
+    lcd.println(eKey);
+    delay(10);
+
+    lcd.write(254);
+
+    switch (eKey){
+    case 'A': accumulator = 0; lcd.clear(); delay(1); break;
+
+    case 'B': determineRpm(); delay(1); break;
+
+    default:
+     {
+       if(eKey != 'C' && eKey != 'D' && eKey != '*' && eKey != '#') {
+	 int number = eKey - '0';
+	 accumulator = number + (accumulator * 10);
+       }
+       delay(1);
+     }
+    }
+  }
+
+	
+	}
 
 //get setpoint for pid loop (the desired speed for the spincoater)
 //exit key is a
 //enter input speed is b
-int getInputSpeed() {
+/*int getInputSpeed() {
   int count = 0;
   int accumulator = 0;
   char number;
@@ -81,18 +111,31 @@ int getInputSpeed() {
   lcd.print("get input speed");
   delay(2000);
   lcd.clear();
-  for (count = 0; count <= 5; count++) {
-    if (key) {
-      number = key;
+  lcd.print(accumulator);
+  for (count = 0; keypad.keyStateChanged() && count <= 5; count++) {
+    if (key != 'A' && key != 'B' && key != 'C'
+	&& key != 'D' && key != '*' && key != '#') {
+      int number = key - '0';
+      accumulator = accumulator * 10;
+      accumulator = number + accumulator;
+      lcd.clear();
+      lcd.print(accumulator);
     }
-    accumulator = accumulator * 10;
-    accumulator = number += accumulator;
-    lcd.clear();
-    lcd.print(accumulator);
+    else if (key == 'A'){
+      accumulator = 0;
+      count = 0;
+      lcd.clear();
+    }
+    else if (key == 'B'){
+      count = 5;
+    }
+    else{
+      count--;
+    }
   }
   inputspeed = accumulator;
   return inputspeed;
-}
+  }*/
 
 //rpm function
 int rpm_fun()
@@ -114,14 +157,14 @@ int rpm_fun()
   return rpmcount;
 }
 
-int determineRpm() {
+void determineRpm() {
   int timer;
   rpm = 0;
   timer = rpm_fun();
   rpm = timer * 12;
   lcd.clear();
-  lcd.print(inputspeed);
+  lcd.print(accumulator);
   lcd.setCursor(1, 1);
   lcd.print(rpm);
-  return rpm;
+  inputspeed = accumulator;
 }
