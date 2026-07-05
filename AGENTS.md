@@ -1,6 +1,3 @@
-# SpinCoater
-code for a spincoater made with a hard drive disc
-
 <!-- PCC-NETWORK:START (managed by pcc-network-kit — edit in the kit, not here) -->
 ## Part of the Physical Capability Cloud
 
